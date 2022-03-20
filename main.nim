@@ -127,6 +127,8 @@ echo """
 """
 discard getch()
 eraseScreen()
+resetMenu()
+drawScreen()
 while running: # Game loop
     resetMenu()
     getInput()
