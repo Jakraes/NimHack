@@ -71,7 +71,6 @@ proc drawScreen() = # Draws to the terminal
         for x in 0..<windowSize:
             menu[y+1][x+1] = world[camPos.y+y][camPos.x+x]
     menu[int(windowSize/2)+1+(playerPos.y - camPos.y - int(windowSize/2))][int(windowSize/2)+1+(playerPos.x - camPos.x - int(windowSize/2))] = '@' # Draws the player to the menu
-    eraseScreen() # Clears the screen 
     setCursorPos(0,0)
     echo """+----------------------+
 |       ~NimHack~      |"""
@@ -116,6 +115,7 @@ proc getInput() = # Self explanatory
     steps += 1
 
 #-----------------------------------------------------------#
+hideCursor()
 echo """
 +-------------------------+
 |                         |
@@ -125,6 +125,8 @@ echo """
 |       or Q to quit      |
 +-------------------------+
 """
+discard getch()
+eraseScreen()
 while running: # Game loop
     resetMenu()
     getInput()
