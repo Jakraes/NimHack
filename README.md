@@ -15,6 +15,6 @@ I'll be using this project as a way to learn more about game programming and to 
  ```
 **Future updates:**  
 -Enemies and combat (With magic and all)  
--Hopefully remove the screen flickering completely  
+-~~Hopefully remove the screen flickering completely~~  
 -A backpack and an assortment of items  
 -Other fun features that I'll add in the future once I finish those above  
