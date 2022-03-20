@@ -5,11 +5,11 @@ I'll be using this project as a way to learn more about game programming and to 
 
 **Controls:**  
 ```
-  ◤  ▲  ◥  
-    7 8 9  
-  ◄ 4   6 ►  
-    1 2 3  
-  ◣  ▼  ◢  
+   ◤   ▲   ◥  
+     7  8  9  
+  ◄  4     6  ►  
+     1  2  3  
+   ◣   ▼   ◢  
   
   Q: quit  
  ```
