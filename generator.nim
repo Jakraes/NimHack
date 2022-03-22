@@ -8,7 +8,7 @@ const
     RoomSizeMin = 3
     RoomSizeMax = 6
     MaxDist = 15 # Max distance between rooms for corridors to be created
-    MapSize = 25
+    MapSize* = 25
 
 var
     world: array[MapSize, array[MapSize, char]]
