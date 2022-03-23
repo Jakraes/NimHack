@@ -17,6 +17,7 @@ var
     player = Player(species: '@', att: 3, def: 3, acc: 3, hp: 10, mp: 10)
     camPos: tuple[x,y:int]
     entitySeq: seq[Entity]
+    menu = 0
 
 player.pos = chooseSpawn(world)
 player.ppos = player.pos
@@ -56,6 +57,11 @@ proc drawInitialTerminal() = # Thanks Goat
     tb.write(8,1,"~NimHack~")
     tb.write(bb)
 
+proc clearMenu() =
+    for y in 5..11:
+        for x in 11..23:
+            tb.write(x, y, " ")
+
 proc drawToTerminal() = 
     tb.setForegroundColor(fgRed)
     tb.write(12,3,"HP:" & $player.hp)
@@ -70,7 +76,22 @@ proc drawToTerminal() =
                 tb.setForegroundColor(fgYellow)
             tb.write(tX, tY, $(world[camPos.y+tY-3][camPos.x+tX-1]))
             tb.resetAttributes()
-    tb.setForegroundColor(fgYellow)
+    clearMenu()
+    case menu
+        of 0:
+            tb.write(14,5, "-MENU-")
+            tb.write(11, 7, "•(I)nventory")
+            tb.write(11, 8, "•(S)pells")
+        of 1:
+            tb.write(12, 5, "-INVENTORY-")
+            tb.write(11, 6, "W: " & player.inventory[0])
+            tb.write(11, 7, "A: " & player.inventory[1])
+        of 2:
+            tb.write(13, 5, "-SPELLS-")
+            for i in 0..<4:
+                tb.write(11, 7+i, "•" & player.spells[i])
+        else:
+            discard
     tb.display()
 
     sleep(50)
@@ -87,6 +108,14 @@ proc getInput() =
             player.pos.x -= 1
         of Key.Right:
             player.pos.x += 1
+        of Key.Backspace:
+            menu = 0
+        of Key.I:
+            if menu == 0:
+                menu = 1
+        of Key.S:
+            if menu == 0:
+                menu = 2
         of Key.Q:
             running = false
         else:

@@ -8,12 +8,19 @@ type
         att, def, acc, hp: int
     Player* = ref object of Entity
         att, def, acc, hp, mp, steps, xp: int
+        inventory: array[7, string]
+        spells: array[4, string] 
+
 
 var
     Enemies* = [
         Enemy(species: 'S', att: 3, def: 3, acc: 3, hp: 3), 
         Enemy(species: 'T', att:5, def:6, acc:3, hp:10)
         ]
+
+    #Items* = [
+    #    object(name: "Health Potion")
+    #]
 
 proc chooseSpawn*(world: array[MapSize, array[MapSize, char]]): tuple[x,y:int] =
     var temp: seq[tuple[x,y:int]]

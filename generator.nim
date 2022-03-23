@@ -98,11 +98,17 @@ proc generate(): array[MapSize, array[MapSize, char]] =
 proc checkFill(): bool =
     var 
         temp: tuple[x,y: int]
-        count = 0
+        count, xCount, xpCount = 0
+        done = false
+        copyworld = world
     for y in 0..<MapSize:
         for x in 0..<MapSize:
             if world[y][x] == '.':
                 count += 1
+                temp = (x,y)
+    copyworld[temp.y][temp.x] = 'X'
+    while not done:
+        xpCount = xCount
 
 proc generateWorld*(): array[MapSize, array[MapSize, char]] =
     var count = 0
