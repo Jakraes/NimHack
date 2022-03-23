@@ -87,7 +87,7 @@ proc drawToTerminal() =
     for line in "ui.txt".linesInFile:
       # The empty space created earlier gets filled.
       # But we are still passing manual x coordinates to do that...
-      # Ideally we would need to dynamically indentify the correct positions.
+      # which isn't ideal.
         if line.contains("$hp"):
             tb.setForegroundColor(fgRed)
             tb.write(11,n,line[15..21].replace("$hp",$player.hp & " "))
