@@ -13,27 +13,36 @@ var
     tb = newTerminalBuffer(terminalWidth(), terminalHeight())
     running = true
     worldOriginal = generateWorld()
+    currentWorld = worldOriginal
     world = worldOriginal
     player = Player(species: '@', att: 3, def: 3, acc: 10, hp: 10, mp: 10)
     camPos: tuple[x,y:int]
     entitySeq: seq[Entity]
     menu = 0
+    level = 1
     time = cpuTime()
     tempSeq: seq[int]
 
-player.pos = chooseSpawn(world)
-player.ppos = player.pos
-player.la = time
-entitySeq.add(player)
+proc placeExit() =
+  let exit = chooseSpawn currentWorld
+  currentWorld[exit.y][exit.x] = '>'
 
-for i in 0..<enemyAmount:
-    var temp = Enemy()
-    deepCopy(temp, Enemies[0])
-    temp.pos = chooseSpawn(world)
-    temp.ppos = temp.pos
-    temp.path = temp.pos
-    temp.la = time
-    entitySeq.add(temp)
+proc placeEntities() =
+    entitySeq = @[]
+    placeExit()
+    player.pos = chooseSpawn(currentWorld)
+    player.ppos = player.pos
+    entitySeq.add(player)
+
+    for i in 0..<enemyAmount:
+        var temp = Enemies[0]
+        deepCopy(temp, Enemies[0])
+        temp.pos = chooseSpawn(currentWorld)
+        temp.ppos = temp.pos
+        temp.path = temp.pos
+        entitySeq.add(temp)
+
+placeEntities()
 
 #--------------------------------\\--------------------------------#
 
@@ -71,6 +80,8 @@ proc drawToTerminal() =
     tb.write(12,3,"HP:" & $player.hp)
     tb.setForegroundColor(fgCyan)
     tb.write(18,3,"MP:" & $player.mp)
+    tb.setForegroundColor(fgMagenta)
+    tb.write(1,2,"Level: ",fgBlue, $level)
     tb.resetAttributes()
     for tY in 3..windowSize+2:
         for tX in 1..windowSize:
@@ -78,6 +89,8 @@ proc drawToTerminal() =
                 tb.setForegroundColor(fgRed)
             elif world[camPos.y+tY-3][camPos.x+tX-1] == '@':
                 tb.setForegroundColor(fgYellow)
+            elif world[camPos.y+tY-3][camPos.x+tX-1] == '>':
+                tb.setForegroundColor(fgGreen)
             tb.write(tX, tY, $(world[camPos.y+tY-3][camPos.x+tX-1]))
             tb.resetAttributes()
     clearMenu()
@@ -103,6 +116,17 @@ proc drawToTerminal() =
 
     sleep(50)
 
+proc changeLevel(restart: bool = false) =
+  # Changes the level. Restarts the level if used as
+  # changeLevel(true) or changeLevel(restart = true)
+    if restart:
+        currentWorld = worldOriginal
+    else:
+        currentWorld = generateWorld()
+    placeEntities()
+    inc level
+    tb.setForegroundColor(fgMagenta)
+
 proc getInput() = 
     var key = getKey()
     player.ppos = player.pos
@@ -117,6 +141,9 @@ proc getInput() =
             player.pos.x += 1
         of Key.Backspace:
             menu = 0
+        of Key.R:
+            level = 0
+            changeLevel(restart = true)
         of Key.I:
             if menu == 0:
                 menu = 1
@@ -129,7 +156,7 @@ proc getInput() =
             discard
 
 proc reset() =
-    world = worldOriginal
+    world = currentWorld
 
 proc pathing(e: Entity) =
     if distance(e) < 5:
@@ -160,6 +187,8 @@ proc combat(e, p: Entity, index: int) =
 proc dealCollision(e: Entity, index: int) =
     if world[e.pos.y][e.pos.x] == '#':
         e.pos = e.ppos
+    elif world[e.pos.y][e.pos.x] == '>' and e == player:
+        changeLevel()
     else:
         for i in 0..<entitySeq.len():
             if i != index:
