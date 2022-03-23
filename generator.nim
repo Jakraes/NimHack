@@ -95,6 +95,15 @@ proc generate(): array[MapSize, array[MapSize, char]] =
                 world[y][x] = '#'
     return world
 
+proc checkFill(): bool =
+    var 
+        temp: tuple[x,y: int]
+        count = 0
+    for y in 0..<MapSize:
+        for x in 0..<MapSize:
+            if world[y][x] == '.':
+                count += 1
+
 proc generateWorld*(): array[MapSize, array[MapSize, char]] =
     var count = 0
     while count <= int((MapSize*MapSize)/3):

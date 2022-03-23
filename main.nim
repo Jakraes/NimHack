@@ -1,15 +1,16 @@
-import os, illwill, generator, system, math
-include entities
-
+import os, generator, system, math, terminal
+include entities, illwill # I have no idea why but I need to include entities or their objects don't work, and illwill because colors won't work
+ 
 #--------------------------------\\--------------------------------#
 
 const
     terminalHeight = 13
-    terminalWidth = 24
+    terminalWidth = 25
     windowSize = 9
     enemyAmount = 8
 
 var 
+    tb = newTerminalBuffer(terminalWidth(), terminalHeight())
     running = true
     worldOriginal = generateWorld()
     world = worldOriginal
@@ -43,20 +44,33 @@ proc distance(e: Entity): float =
     result = sqrt(float((e.pos.x - player.pos.x)^2 + (e.pos.y - player.pos.y)^2))
 #--------------------------------\\--------------------------------#
 
-proc drawToTerminal() = 
-    var 
-        tb = newTerminalBuffer(terminalWidth(), terminalHeight())
+proc drawInitialTerminal() = # Thanks Goat
+    var
         bb = newBoxBuffer(terminalWidth, terminalHeight)
     bb = newBoxBuffer(terminalWidth, terminalHeight)
     bb.drawRect(0,0,terminalWidth-1,2, doubleStyle=true)
     bb.drawRect(0,2,terminalWidth-1, terminalHeight-1, doubleStyle=true)
     bb.drawVertLine(windowSize+1, 2, terminalHeight)
     bb.drawHorizLine(windowSize+1, terminalWidth, 4)
-    tb.write(7,1,"~NimHack~")
+    tb.setForegroundColor(fgYellow)
+    tb.write(8,1,"~NimHack~")
+    tb.write(bb)
+
+proc drawToTerminal() = 
+    tb.setForegroundColor(fgRed)
+    tb.write(12,3,"HP:" & $player.hp)
+    tb.setForegroundColor(fgCyan)
+    tb.write(18,3,"MP:" & $player.mp)
+    tb.resetAttributes()
     for tY in 3..windowSize+2:
         for tX in 1..windowSize:
+            if world[camPos.y+tY-3][camPos.x+tX-1] == 'S':
+                tb.setForegroundColor(fgRed)
+            elif world[camPos.y+tY-3][camPos.x+tX-1] == '@':
+                tb.setForegroundColor(fgYellow)
             tb.write(tX, tY, $(world[camPos.y+tY-3][camPos.x+tX-1]))
-    tb.write(bb)
+            tb.resetAttributes()
+    tb.setForegroundColor(fgYellow)
     tb.display()
 
     sleep(50)
@@ -65,13 +79,13 @@ proc getInput() =
     var key = getKey()
     player.ppos = player.pos
     case key
-        of Key.Eight:
+        of Key.Up:
             player.pos.y -= 1
-        of Key.Two:
+        of Key.Down:
             player.pos.y += 1
-        of Key.Four:
+        of Key.Left:
             player.pos.x -= 1
-        of Key.Six:
+        of Key.Right:
             player.pos.x += 1
         of Key.Q:
             running = false
@@ -135,6 +149,7 @@ proc exitProc() {.noconv.} =
     quit(0)
 
 proc main() =
+    drawInitialTerminal()
     illwillInit(fullscreen=true)
     setControlCHook(exitProc)
     hideCursor()
