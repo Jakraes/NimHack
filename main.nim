@@ -1,5 +1,5 @@
 import os, generator, system, math, terminal, sequtils, times
-include entities, illwill # I have no idea why but I need to include entities or their objects don't work, and illwill because colors won't work
+include hacktypes, entities, illwill # I have no idea why but I need to include entities or their objects don't work, and illwill because colors won't work
  
 #--------------------------------\\--------------------------------#
 
@@ -22,6 +22,9 @@ var
     level = 1
     time = cpuTime()
     tempSeq: seq[int]
+
+player.inventory[0] = Items[1]
+player.inventory[1] = Items[2]
 
 proc placeExit() =
   let exit = chooseSpawn currentWorld
@@ -61,13 +64,17 @@ proc distance(e: Entity): float =
 proc drawInitialTerminal() = # Thanks Goat
     var
         bb = newBoxBuffer(terminalWidth, terminalHeight)
-    bb = newBoxBuffer(terminalWidth, terminalHeight)
-    bb.drawRect(0,0,terminalWidth-1,2, doubleStyle=true)
-    bb.drawRect(0,2,terminalWidth-1, terminalHeight-1, doubleStyle=true)
-    bb.drawVertLine(windowSize+1, 2, terminalHeight)
-    bb.drawHorizLine(windowSize+1, terminalWidth, 4)
     tb.setForegroundColor(fgYellow)
-    tb.write(8,1,"~NimHack~")
+    var n = 0
+    for line in "ui.txt".linesInFile:
+    # This makes sure $hp, $mp and $lv don't literally show up in the UI.
+        if line.contains("$lv"):
+            tb.write(0, n, line.replace("$lv", "  ═")) 
+        elif line.contains("$hp"):
+            tb.write(0, n, line.multiReplace({"$hp":"  ","$mp":"  "})) 
+        else:
+            tb.write(0,n,line)
+        inc n
     tb.write(bb)
 
 proc clearMenu() =
@@ -76,27 +83,36 @@ proc clearMenu() =
             tb.write(x, y, " ")
 
 proc drawToTerminal() = 
-    tb.setForegroundColor(fgRed)
-    tb.write(12,3,"HP:" & $player.hp)
-    tb.setForegroundColor(fgCyan)
-    tb.write(18,3,"MP:" & $player.mp)
-    tb.setForegroundColor(fgMagenta)
-    tb.write(1,2,"Level: ",fgBlue, $level)
+    var n =0
+    for line in "ui.txt".linesInFile:
+      # The empty space created earlier gets filled.
+      # But we are still passing manual x coordinates to do that...
+      # which isn't ideal.
+        if line.contains("$hp"):
+            tb.setForegroundColor(fgRed)
+            tb.write(11,n,line[15..21].replace("$hp",$player.hp & " "))
+        if line.contains("$mp"):
+            tb.setForegroundColor(fgCyan)
+            tb.write(18,n,line[23..28].replace("$mp",$player.mp & " "))
+        if line.contains("$lv"):
+            tb.setForegroundColor(fgYellow)
+            tb.write(1,n,"Level:",fgMagenta, $level)
+        inc n
     tb.resetAttributes()
     for tY in 3..windowSize+2:
         for tX in 1..windowSize:
             if world[camPos.y+tY-3][camPos.x+tX-1] == 'S':
                 tb.setForegroundColor(fgRed)
-            elif world[camPos.y+tY-3][camPos.x+tX-1] == '@':
+            if world[camPos.y+tY-3][camPos.x+tX-1] == '@':
                 tb.setForegroundColor(fgYellow)
-            elif world[camPos.y+tY-3][camPos.x+tX-1] == '>':
+            if world[camPos.y+tY-3][camPos.x+tX-1] == '>':
                 tb.setForegroundColor(fgGreen)
             tb.write(tX, tY, $(world[camPos.y+tY-3][camPos.x+tX-1]))
             tb.resetAttributes()
     clearMenu()
     case menu
         of 0:
-            tb.write(14,5, "-MENU-")
+            tb.write(14, 5, "-MENU-")
             tb.write(11, 7, "•(I)nventory")
             tb.write(11, 8, "•(S)pells")
         of 1:
