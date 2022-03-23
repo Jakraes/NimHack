@@ -1,4 +1,4 @@
-import os, generator, system, math, terminal
+import os, generator, system, math, terminal, sequtils, times
 include entities, illwill # I have no idea why but I need to include entities or their objects don't work, and illwill because colors won't work
  
 #--------------------------------\\--------------------------------#
@@ -14,13 +14,16 @@ var
     running = true
     worldOriginal = generateWorld()
     world = worldOriginal
-    player = Player(species: '@', att: 3, def: 3, acc: 3, hp: 10, mp: 10)
+    player = Player(species: '@', att: 3, def: 3, acc: 10, hp: 10, mp: 10)
     camPos: tuple[x,y:int]
     entitySeq: seq[Entity]
     menu = 0
+    time = cpuTime()
+    tempSeq: seq[int]
 
 player.pos = chooseSpawn(world)
 player.ppos = player.pos
+player.la = time
 entitySeq.add(player)
 
 for i in 0..<enemyAmount:
@@ -29,6 +32,7 @@ for i in 0..<enemyAmount:
     temp.pos = chooseSpawn(world)
     temp.ppos = temp.pos
     temp.path = temp.pos
+    temp.la = time
     entitySeq.add(temp)
 
 #--------------------------------\\--------------------------------#
@@ -84,8 +88,11 @@ proc drawToTerminal() =
             tb.write(11, 8, "•(S)pells")
         of 1:
             tb.write(12, 5, "-INVENTORY-")
-            tb.write(11, 6, "W: " & player.inventory[0])
-            tb.write(11, 7, "A: " & player.inventory[1])
+            try:
+                tb.write(11, 6, "W: " & player.inventory[0].name)
+                tb.write(11, 7, "A: " & player.inventory[1].name)
+            except:
+                discard
         of 2:
             tb.write(13, 5, "-SPELLS-")
             for i in 0..<4:
@@ -139,6 +146,17 @@ proc pathing(e: Entity) =
     else:
         e.path = chooseSpawn(world)
 
+proc combat(e, p: Entity, index: int) =
+    var
+        att = e.att
+        def = p.def
+        acc = e.acc
+    
+    if rand(acc) >= def:
+        p.hp -= rand(att)
+    if index == 0:
+        tb.write(0, 30, $p.hp)
+
 proc dealCollision(e: Entity, index: int) =
     if world[e.pos.y][e.pos.x] == '#':
         e.pos = e.ppos
@@ -147,7 +165,12 @@ proc dealCollision(e: Entity, index: int) =
             if i != index:
                 if entitySeq[i].pos == e.pos:
                     e.pos = e.ppos
-
+                    if e.species != entitySeq[i].species:
+                        if time - e.la >= 1.5:
+                            combat(e, entitySeq[i], i)
+                            e.la = time
+                            if entitySeq[i].hp <= 0:
+                                tempSeq.add(i)
 
 proc dealEnemies() =
     for i in 1..<entitySeq.len():
@@ -155,10 +178,15 @@ proc dealEnemies() =
         pathing(entitySeq[i])
 
 proc update() =
+    for i in 0..<tempSeq.len():
+        tempSeq.delete(0)
+    time = cpuTime()
     dealEnemies()
     for i in 0..<entitySeq.len():
         dealCollision(entitySeq[i], i)
         world[entitySeq[i].pos.y][entitySeq[i].pos.x] = entitySeq[i].species
+    for i in 0..<tempSeq.len():
+        entitySeq.delete(tempSeq[i]-i)
     camPos = (player.pos.x-4, player.pos.y-4)
     if camPos.x < 0:
         camPos.x = 0
