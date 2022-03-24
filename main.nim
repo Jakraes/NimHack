@@ -1,7 +1,6 @@
 import std/[os, math, times, strutils, random]
 import hacktypes, entities, generator
-import illwill # I have no idea why but I need to include entities or their objects don't work, and illwill because colors won't work
- 
+import illwill 
 #--------------------------------\\--------------------------------#
 
 const
@@ -11,7 +10,7 @@ const
 var 
     tb = newTerminalBuffer(terminalWidth(), terminalHeight())
     running = true
-    worldOriginal = generateWorld()
+    worldOriginal = loadWorldFile "shop.txt"
     currentWorld = worldOriginal
     world = worldOriginal
     player = Player(species: '@', att: 3, def: 3, acc: 10, hp: 10, mp: 10)
@@ -19,12 +18,15 @@ var
     camPos: tuple[x,y:int]
     entitySeq: seq[Entity]
     menu = 0
-    level = 1
+    level = 0
     time = cpuTime()
     deadEntities: seq[int]
 
 player.inventory[0] = Items[1]
 player.inventory[1] = Items[2]
+player.pos = chooseSpawn(currentWorld)
+player.ppos = player.pos
+entitySeq.add(player)
 
 proc placeExit() =
   let exit = chooseSpawn currentWorld
@@ -32,20 +34,21 @@ proc placeExit() =
 
 proc placeEntities() =
     entitySeq = @[]
-    placeExit()
     player.pos = chooseSpawn(currentWorld)
     player.ppos = player.pos
     entitySeq.add(player)
 
-    for i in 0..<enemyAmount:
-        var temp = Enemies[0]
-        deepCopy(temp, Enemies[0])
-        temp.pos = chooseSpawn(currentWorld)
-        temp.ppos = temp.pos
-        temp.path = temp.pos
-        entitySeq.add(temp)
+    if level != 0:
+        placeExit()
+        for i in 0..<enemyAmount:
+            var temp = Enemies[0]
+            deepCopy(temp, Enemies[0])
+            temp.pos = chooseSpawn(currentWorld)
+            temp.ppos = temp.pos
+            temp.path = temp.pos
+            entitySeq.add(temp)
 
-placeEntities()
+# placeEntities()
 
 #--------------------------------\\--------------------------------#
 
@@ -62,15 +65,12 @@ proc distance(e: Entity): float =
 #--------------------------------\\--------------------------------#
 
 proc drawInitialTerminal() = # Thanks Goat
-    var
-        bb = newBoxBuffer(terminalWidth(), terminalHeight())
     tb.setForegroundColor(fgYellow)
     var n = 0
     for line in "ui.txt".linesInFile:
     # This makes sure $hp, $mp and $lv don't literally show up in the UI.
         tb.write(0, n, line.multiReplace({"$hp": "  ", "$mp": "  ", "$lv": "   ", "$act": "   "}))
         inc n
-    tb.write(bb)
 
 proc clearMenu() =
     for y in 5..11:
@@ -96,19 +96,22 @@ proc drawToTerminal() =
             tb.setForegroundColor(fgYellow)
             tb.write(1,n,lastAction)
         inc n
-    tb.resetAttributes()
     for tY in 3..windowSize+2:
         for tX in 1..windowSize:
-            if world[camPos.y+tY-3][camPos.x+tX-1] == 'S':
-                tb.setForegroundColor(fgRed)
-            if world[camPos.y+tY-3][camPos.x+tX-1] == '@':
+            let tile = world[camPos.y+tY-3][camPos.x+tX-1]
+            case tile
+            of 'S':
+                tb.setForegroundColor(fgRed, true)
+            of '@':
                 if player.hp > 0:
-                    tb.setForegroundColor(fgYellow)
+                    tb.setForegroundColor(fgYellow, true)
                 else:
-                    tb.setForegroundColor(fgBlue)
-            if world[camPos.y+tY-3][camPos.x+tX-1] == '>':
-                tb.setForegroundColor(fgGreen)
-            tb.write(tX, tY, $(world[camPos.y+tY-3][camPos.x+tX-1]))
+                    tb.setForegroundColor(fgBlue, bright = true)
+            of '>':
+                tb.setForegroundColor(fgGreen, bright = true)
+            else:
+                tb.setForegroundColor(fgBlack, bright = true)
+            tb.write(tX, tY, $tile)
             tb.resetAttributes()
     clearMenu()
     case menu
@@ -135,11 +138,11 @@ proc changeLevel(restart: bool = false) =
   # changeLevel(true) or changeLevel(restart = true)
     if restart:
         currentWorld = worldOriginal
+        level = 0
     else:
         currentWorld = generateWorld()
+        inc level
     placeEntities()
-    inc level
-    tb.setForegroundColor(fgMagenta)
 
 proc getInput() = 
     var key = getKey()
@@ -156,7 +159,6 @@ proc getInput() =
         of Key.Backspace:
             menu = 0
         of Key.R:
-            level = 0
             changeLevel(restart = true)
         of Key.I:
             if menu == 0:
