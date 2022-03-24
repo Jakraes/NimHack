@@ -1,4 +1,4 @@
-import std/[os, math, sequtils, times, strutils, random]
+import std/[os, math, times, strutils, random]
 import hacktypes, entities, generator
 import illwill # I have no idea why but I need to include entities or their objects don't work, and illwill because colors won't work
  
@@ -21,7 +21,7 @@ var
     menu = 0
     level = 1
     time = cpuTime()
-    tempSeq: seq[int]
+    deadEntities: seq[int]
 
 player.inventory[0] = Items[1]
 player.inventory[1] = Items[2]
@@ -102,7 +102,10 @@ proc drawToTerminal() =
             if world[camPos.y+tY-3][camPos.x+tX-1] == 'S':
                 tb.setForegroundColor(fgRed)
             if world[camPos.y+tY-3][camPos.x+tX-1] == '@':
-                tb.setForegroundColor(fgYellow)
+                if player.hp > 0:
+                    tb.setForegroundColor(fgYellow)
+                else:
+                    tb.setForegroundColor(fgBlue)
             if world[camPos.y+tY-3][camPos.x+tX-1] == '>':
                 tb.setForegroundColor(fgGreen)
             tb.write(tX, tY, $(world[camPos.y+tY-3][camPos.x+tX-1]))
@@ -115,11 +118,8 @@ proc drawToTerminal() =
             tb.write(11, 8, "•(S)pells")
         of 1:
             tb.write(12, 5, "-INVENTORY-")
-            try:
-                tb.write(11, 6, "W: " & player.inventory[0].name)
-                tb.write(11, 7, "A: " & player.inventory[1].name)
-            except:
-                discard
+            tb.write(11, 6, "W: " & player.inventory[0].name)
+            tb.write(11, 7, "A: " & player.inventory[1].name)
         of 2:
             tb.write(13, 5, "-SPELLS-")
             for i in 0..<4:
@@ -168,12 +168,14 @@ proc getInput() =
             running = false
         else:
             discard
+    player.pos.x = clamp(player.pos.x, 0, MapSize - 1)
+    player.pos.y = clamp(player.pos.y, 0, MapSize - 1)
 
 proc reset() =
     world = currentWorld
 
 proc pathing(e: Entity) =
-    if distance(e) < 5:
+    if distance(e) < 5 and player.hp > 0:
         e.path = player.pos
     if e.pos != e.path:
         if rand(5) == 0:
@@ -204,21 +206,22 @@ proc combat(e, p: Entity, index: int) =
         lastAction = "You attack the " & p.name
 
 proc dealCollision(e: Entity, index: int) =
-    if world[e.pos.y][e.pos.x] == '#':
-        e.pos = e.ppos
-    elif world[e.pos.y][e.pos.x] == '>' and e == player:
-        changeLevel()
-    else:
-        for i in 0..<entitySeq.len():
-            if i != index:
-                if entitySeq[i].pos == e.pos:
-                    e.pos = e.ppos
-                    if e.species != entitySeq[i].species:
-                        if time - e.la >= 1.5:
-                            combat(e, entitySeq[i], i)
-                            e.la = time
-                            if entitySeq[i].hp <= 0:
-                                tempSeq.add(i)
+    if (index == 0 and player.hp > 0) or index != 0:
+        if world[e.pos.y][e.pos.x] == '#':
+                e.pos = e.ppos
+        elif world[e.pos.y][e.pos.x] == '>' and e == player:
+            changeLevel()
+        else:
+            for i in 0..<entitySeq.len():
+                if i != index:
+                    if entitySeq[i].pos == e.pos:
+                        e.pos = e.ppos
+                        if e.species != entitySeq[i].species:
+                            if time - e.la >= 1.5:
+                                combat(e, entitySeq[i], i)
+                                e.la = time
+                                if entitySeq[i].hp <= 0 and i != 0:
+                                    deadEntities.add(i)
     let 
         x = player.pos.x - player.ppos.x
         y = player.pos.y - player.ppos.y
@@ -237,24 +240,17 @@ proc dealEnemies() =
         pathing(entitySeq[i])
 
 proc update() =
-    for i in 0..<tempSeq.len():
-        tempSeq.delete(0)
+    deadEntities.setLen(0)
     time = cpuTime()
     dealEnemies()
     for i in 0..<entitySeq.len():
         dealCollision(entitySeq[i], i)
         world[entitySeq[i].pos.y][entitySeq[i].pos.x] = entitySeq[i].species
-    for i in 0..<tempSeq.len():
-        entitySeq.delete(tempSeq[i]-i)
+    for i in 0..<deadEntities.len():
+        entitySeq.delete(deadEntities[i]-i)
     camPos = (player.pos.x-4, player.pos.y-4)
-    if camPos.x < 0:
-        camPos.x = 0
-    elif camPos.x > MapSize - windowSize:
-        camPos.x = MapSize - windowSize
-    if camPos.y < 0:
-        camPos.y = 0
-    elif camPos.y > MapSize - windowSize:
-        camPos.y = MapSize - windowSize
+    camPos.x = clamp(camPos.x, 0, MapSize - windowSize)
+    camPos.y = clamp(camPos.y, 0, MapSize - windowSize)
 
 
 #--------------------------------\\--------------------------------#
@@ -271,10 +267,10 @@ proc main() =
     hideCursor()
 
     while running:
-        reset()
-        getInput()
-        update()
-        drawToTerminal()
+            reset()
+            getInput()
+            update()
+            drawToTerminal()
 
     exitProc()
 

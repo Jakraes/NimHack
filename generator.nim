@@ -111,7 +111,8 @@ proc generate(): World =
             if y == 0 or y == MapSize-1 or x == 0 or x == MapSize-1:
                 result[y][x] = '#'
 
-proc checkFill(world: World): bool =
+proc checkFill(world: World): bool = 
+    # WIP still, just a prc to check if all floor tiles are connected, useful for making worlds without unreachable rooms
     var 
         temp: tuple[x,y: int]
         count, xCount, xpCount = 0
