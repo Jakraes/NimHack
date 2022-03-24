@@ -5,6 +5,7 @@ type
         name*, app*: string
         att*: int
     Entity* = ref object of RootObj
+        name*: string
         species*: char
         ppos*, pos*, path*: tuple[x, y: int]
         att*, def*, acc*, hp*: int
@@ -20,8 +21,8 @@ type
 
 var
     Enemies* = [
-        Enemy(species: 'S', att: 3, def: 3, acc: 10, hp: 3), 
-        Enemy(species: 'T', att:5, def:6, acc:3, hp:10)
+        Enemy(species: 'S', att: 3, def: 3, acc: 10, hp: 3, name: "snake"), 
+        Enemy(species: 'T', att:5, def:6, acc:3, hp:10, name: "troll")
         ]
 
     Items* = [
