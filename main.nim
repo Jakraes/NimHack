@@ -1,6 +1,7 @@
 import std/[os, math, times, strutils, random]
 import hacktypes, entities, generator
 import illwill 
+#--------------------------------\\--------------------------------#
 
 const
     windowSize = 9
@@ -108,17 +109,6 @@ proc drawToTerminal() =
                 tb.setForegroundColor(fgBlack, bright = true)
             tb.write(tX, tY, $tile)
             tb.resetAttributes()
-            # if world[camPos.y+tY-3][camPos.x+tX-1] == 'S':
-            #     tb.setForegroundColor(fgRed)
-            # if world[camPos.y+tY-3][camPos.x+tX-1] == '@':
-            #     if player.hp > 0:
-            #         tb.setForegroundColor(fgYellow)
-            #     else:
-            #         tb.setForegroundColor(fgBlue)
-            # if world[camPos.y+tY-3][camPos.x+tX-1] == '>':
-            #     tb.setForegroundColor(fgGreen)
-            # tb.write(tX, tY, $(world[camPos.y+tY-3][camPos.x+tX-1]))
-            # tb.resetAttributes()
     clearMenu()
     case menu
         of 0:
