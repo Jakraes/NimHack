@@ -1,5 +1,6 @@
 import std/random
 import math
+from hacktypes import linesInFile
 
 randomize()
 
@@ -39,12 +40,23 @@ proc `^`(x, y: int): int = # Exponent function
 proc distance (p1, p2: tuple[y: int, x: int]): float = # Calculates distance between two points in the world array
     result = float(((p2.x-p1.x)^2 + (p2.y-p1.y)^2)).sqrt()
 
-proc generate(): World =
-
+proc initialWorld(): World =
     for y in 0..<MapSize: # Fills the result array with the # character (wall)
         for x in 0..<MapSize:
             result[y][x] = '#'
 
+const initW = static(initialWorld())
+
+proc loadWorldFile*(file: static string): World =
+    result = initW # Fills void if the map is smaller than world size
+    var y = 0
+    for l in file.linesInFile:
+        for x in 0..<l.len-1:
+            result[y][x] = l[x]
+        inc y
+
+proc generate(): World =
+    result = initW
     for i in 0..<RoomAmount: # Creates the rooms in the result array
         let
             w = rand(RoomSizeMin..RoomSizeMax) # / Width and height of the room

@@ -10,7 +10,7 @@ const
 var 
     tb = newTerminalBuffer(terminalWidth(), terminalHeight())
     running = true
-    worldOriginal = generateWorld()
+    worldOriginal = loadWorldFile "shop.txt"
     currentWorld = worldOriginal
     world = worldOriginal
     player = Player(species: '@', att: 3, def: 3, acc: 10, hp: 10, mp: 10)
@@ -18,12 +18,15 @@ var
     camPos: tuple[x,y:int]
     entitySeq: seq[Entity]
     menu = 0
-    level = 1
+    level = 0
     time = cpuTime()
     deadEntities: seq[int]
 
 player.inventory[0] = Items[1]
 player.inventory[1] = Items[2]
+player.pos = chooseSpawn(currentWorld)
+player.ppos = player.pos
+entitySeq.add(player)
 
 proc placeExit() =
   let exit = chooseSpawn currentWorld
@@ -31,20 +34,21 @@ proc placeExit() =
 
 proc placeEntities() =
     entitySeq = @[]
-    placeExit()
     player.pos = chooseSpawn(currentWorld)
     player.ppos = player.pos
     entitySeq.add(player)
 
-    for i in 0..<enemyAmount:
-        var temp = Enemies[0]
-        deepCopy(temp, Enemies[0])
-        temp.pos = chooseSpawn(currentWorld)
-        temp.ppos = temp.pos
-        temp.path = temp.pos
-        entitySeq.add(temp)
+    if level != 0:
+        placeExit()
+        for i in 0..<enemyAmount:
+            var temp = Enemies[0]
+            deepCopy(temp, Enemies[0])
+            temp.pos = chooseSpawn(currentWorld)
+            temp.ppos = temp.pos
+            temp.path = temp.pos
+            entitySeq.add(temp)
 
-placeEntities()
+# placeEntities()
 
 #--------------------------------\\--------------------------------#
 
@@ -134,11 +138,11 @@ proc changeLevel(restart: bool = false) =
   # changeLevel(true) or changeLevel(restart = true)
     if restart:
         currentWorld = worldOriginal
+        level = 0
     else:
         currentWorld = generateWorld()
+        inc level
     placeEntities()
-    inc level
-    tb.setForegroundColor(fgMagenta)
 
 proc getInput() = 
     var key = getKey()
@@ -155,7 +159,6 @@ proc getInput() =
         of Key.Backspace:
             menu = 0
         of Key.R:
-            level = 0
             changeLevel(restart = true)
         of Key.I:
             if menu == 0:
