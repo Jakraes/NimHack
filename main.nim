@@ -1,8 +1,6 @@
 import std/[os, math, times, strutils, random]
 import hacktypes, entities, generator
-import illwill # I have no idea why but I need to include entities or their objects don't work, and illwill because colors won't work
- 
-#--------------------------------\\--------------------------------#
+import illwill 
 
 const
     windowSize = 9
@@ -62,15 +60,12 @@ proc distance(e: Entity): float =
 #--------------------------------\\--------------------------------#
 
 proc drawInitialTerminal() = # Thanks Goat
-    var
-        bb = newBoxBuffer(terminalWidth(), terminalHeight())
     tb.setForegroundColor(fgYellow)
     var n = 0
     for line in "ui.txt".linesInFile:
     # This makes sure $hp, $mp and $lv don't literally show up in the UI.
         tb.write(0, n, line.multiReplace({"$hp": "  ", "$mp": "  ", "$lv": "   ", "$act": "   "}))
         inc n
-    tb.write(bb)
 
 proc clearMenu() =
     for y in 5..11:
@@ -96,20 +91,34 @@ proc drawToTerminal() =
             tb.setForegroundColor(fgYellow)
             tb.write(1,n,lastAction)
         inc n
-    tb.resetAttributes()
     for tY in 3..windowSize+2:
         for tX in 1..windowSize:
-            if world[camPos.y+tY-3][camPos.x+tX-1] == 'S':
-                tb.setForegroundColor(fgRed)
-            if world[camPos.y+tY-3][camPos.x+tX-1] == '@':
+            let tile = world[camPos.y+tY-3][camPos.x+tX-1]
+            case tile
+            of 'S':
+                tb.setForegroundColor(fgRed, true)
+            of '@':
                 if player.hp > 0:
-                    tb.setForegroundColor(fgYellow)
+                    tb.setForegroundColor(fgYellow, true)
                 else:
-                    tb.setForegroundColor(fgBlue)
-            if world[camPos.y+tY-3][camPos.x+tX-1] == '>':
-                tb.setForegroundColor(fgGreen)
-            tb.write(tX, tY, $(world[camPos.y+tY-3][camPos.x+tX-1]))
+                    tb.setForegroundColor(fgBlue, bright = true)
+            of '>':
+                tb.setForegroundColor(fgGreen, bright = true)
+            else:
+                tb.setForegroundColor(fgBlack, bright = true)
+            tb.write(tX, tY, $tile)
             tb.resetAttributes()
+            # if world[camPos.y+tY-3][camPos.x+tX-1] == 'S':
+            #     tb.setForegroundColor(fgRed)
+            # if world[camPos.y+tY-3][camPos.x+tX-1] == '@':
+            #     if player.hp > 0:
+            #         tb.setForegroundColor(fgYellow)
+            #     else:
+            #         tb.setForegroundColor(fgBlue)
+            # if world[camPos.y+tY-3][camPos.x+tX-1] == '>':
+            #     tb.setForegroundColor(fgGreen)
+            # tb.write(tX, tY, $(world[camPos.y+tY-3][camPos.x+tX-1]))
+            # tb.resetAttributes()
     clearMenu()
     case menu
         of 0:
