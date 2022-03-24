@@ -1,5 +1,6 @@
-import os, generator, system, math, terminal, sequtils, times
-include hacktypes, entities, illwill # I have no idea why but I need to include entities or their objects don't work, and illwill because colors won't work
+import std/[os, math, sequtils, times, strutils, random]
+import hacktypes, entities, generator
+import illwill # I have no idea why but I need to include entities or their objects don't work, and illwill because colors won't work
  
 #--------------------------------\\--------------------------------#
 
