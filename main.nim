@@ -1,11 +1,10 @@
-import os, generator, system, math, terminal, sequtils, times
-include hacktypes, entities, illwill # I have no idea why but I need to include entities or their objects don't work, and illwill because colors won't work
+import std/[os, math, sequtils, times, strutils, random]
+import hacktypes, entities, generator
+import illwill # I have no idea why but I need to include entities or their objects don't work, and illwill because colors won't work
  
 #--------------------------------\\--------------------------------#
 
 const
-    terminalHeight = 13
-    terminalWidth = 25
     windowSize = 9
     enemyAmount = 8
 
@@ -16,6 +15,7 @@ var
     currentWorld = worldOriginal
     world = worldOriginal
     player = Player(species: '@', att: 3, def: 3, acc: 10, hp: 10, mp: 10)
+    lastAction: string
     camPos: tuple[x,y:int]
     entitySeq: seq[Entity]
     menu = 0
@@ -63,17 +63,12 @@ proc distance(e: Entity): float =
 
 proc drawInitialTerminal() = # Thanks Goat
     var
-        bb = newBoxBuffer(terminalWidth, terminalHeight)
+        bb = newBoxBuffer(terminalWidth(), terminalHeight())
     tb.setForegroundColor(fgYellow)
     var n = 0
     for line in "ui.txt".linesInFile:
     # This makes sure $hp, $mp and $lv don't literally show up in the UI.
-        if line.contains("$lv"):
-            tb.write(0, n, line.replace("$lv", "  ═")) 
-        elif line.contains("$hp"):
-            tb.write(0, n, line.multiReplace({"$hp":"  ","$mp":"  "})) 
-        else:
-            tb.write(0,n,line)
+        tb.write(0, n, line.multiReplace({"$hp": "  ", "$mp": "  ", "$lv": "   ", "$act": "   "}))
         inc n
     tb.write(bb)
 
@@ -97,6 +92,9 @@ proc drawToTerminal() =
         if line.contains("$lv"):
             tb.setForegroundColor(fgYellow)
             tb.write(1,n,"Level:",fgMagenta, $level)
+        if line.contains("$act"):
+            tb.setForegroundColor(fgYellow)
+            tb.write(1,n,lastAction)
         inc n
     tb.resetAttributes()
     for tY in 3..windowSize+2:
@@ -190,6 +188,9 @@ proc pathing(e: Entity) =
         e.path = chooseSpawn(world)
 
 proc combat(e, p: Entity, index: int) =
+    # e: attacking entity 
+    # p: defending entity
+    # index: index of defending entity
     var
         att = e.att
         def = p.def
@@ -199,6 +200,8 @@ proc combat(e, p: Entity, index: int) =
         p.hp -= rand(att)
     if index == 0:
         tb.write(0, 30, $p.hp)
+    if e == entitySeq[0]:
+        lastAction = "You attack the " & p.name
 
 proc dealCollision(e: Entity, index: int) =
     if world[e.pos.y][e.pos.x] == '#':
@@ -216,6 +219,17 @@ proc dealCollision(e: Entity, index: int) =
                             e.la = time
                             if entitySeq[i].hp <= 0:
                                 tempSeq.add(i)
+    let 
+        x = player.pos.x - player.ppos.x
+        y = player.pos.y - player.ppos.y
+    if y == -1:
+        lastAction = "You walk northwards    "
+    elif y == 1:
+        lastAction = "You walk southwards    "
+    if x == -1:
+        lastAction = "You walk westwards     "
+    elif x == 1:
+        lastAction = "You walk eastwards     "
 
 proc dealEnemies() =
     for i in 1..<entitySeq.len():
