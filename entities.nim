@@ -1,19 +1,19 @@
-import generator, random, times
+import generator, random 
 
 type
     Item* = ref object of RootObj
-        name, app: string
-        att: int
+        name*, app*: string
+        att*: int
     Entity* = ref object of RootObj
-        species: char
-        ppos, pos, path: tuple[x,y:int]
-        att, def, acc, hp: int
-        la: float
+        species*: char
+        ppos*, pos*, path*: tuple[x, y: int]
+        att*, def*, acc*, hp*: int
+        la*: float
     Enemy* = ref object of Entity
         # Weird stuff going on here
     Player* = ref object of Entity
-        mp, steps, xp: int
-        wpn, arm: Item
+        mp*, steps*, xp*: int
+        wpn*, arm*: Item
         inventory*: array[7, Item]
         spells*: array[4, string] 
 
