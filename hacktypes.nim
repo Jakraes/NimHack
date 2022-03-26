@@ -5,5 +5,5 @@ iterator linesInFile*(s: static string): string =
     for line in lines(s):
       yield line
   except:
-    for line in splitLines(myFile, true):
+    for line in splitLines(myFile):
       yield line

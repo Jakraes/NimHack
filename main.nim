@@ -13,24 +13,48 @@ var
     worldOriginal = loadWorldFile "shop.txt"
     currentWorld = worldOriginal
     world = worldOriginal
-    player = Player(species: '@', att: 3, def: 3, acc: 10, hp: 10, mp: 10)
+    player = Player(name: "player", species: '@', att: 3, def: 3, acc: 10, hp: 10, mp: 10)
     lastAction: string
     camPos: tuple[x,y:int]
     entitySeq: seq[Entity]
-    menu = 0
-    level = 0
+    menu, level, turns = 0
     time = cpuTime()
     deadEntities: seq[int]
+    goreSeq: seq[tuple[x,y,z:int]]
+    worldArr: array[16, World]
 
+
+proc displayTitleScreen() =
+  var n: int
+  tb.setForegroundColor(fgYellow)
+  var llen: int
+  for l in "title.txt".linesInFile:
+    tb.write(0,n,l)
+    inc n
+    llen = l.len
+  tb.drawRect(0,0,llen,7)
+  n += 1
+  for (color, isBright) in [(fgBlack, false),(fgBlack, true),(fgRed, false)]:
+    tb.setForegroundColor(color, isBright)
+    var nn = n
+    for l in "splash.txt".linesInFile:
+      tb.write(0,nn,l)
+      inc nn
+    tb.display()
+    sleep(0500)
+  sleep(2000)
+
+
+worldArr[0] = worldOriginal
+for i in 1..15:  worldArr[i] = generateWorld() 
 player.inventory[0] = Items[1]
 player.inventory[1] = Items[2]
-player.pos = chooseSpawn(currentWorld)
-player.ppos = player.pos
-entitySeq.add(player)
+player.spells[0] = "(D)ig"
 
 proc placeExit() =
-  let exit = chooseSpawn currentWorld
-  currentWorld[exit.y][exit.x] = '>'
+  let z = level
+  let (x,y) = chooseSpawn currentWorld
+  worldArr[z][y][x] = '>'
 
 proc placeEntities() =
     entitySeq = @[]
@@ -48,7 +72,7 @@ proc placeEntities() =
             temp.path = temp.pos
             entitySeq.add(temp)
 
-# placeEntities()
+placeEntities()
 
 #--------------------------------\\--------------------------------#
 
@@ -98,20 +122,33 @@ proc drawToTerminal() =
         inc n
     for tY in 3..windowSize+2:
         for tX in 1..windowSize:
-            let tile = world[camPos.y+tY-3][camPos.x+tX-1]
+            let
+                wY = camPos.y+tY-3
+                wX = camPos.x+tX-1
+                tile = world[wY][wX]
+            var rtile:string # Replacement char
             case tile
             of 'S':
                 tb.setForegroundColor(fgRed, true)
             of '@':
+              if player.pos == (wX, wY):
                 if player.hp > 0:
                     tb.setForegroundColor(fgYellow, true)
                 else:
                     tb.setForegroundColor(fgBlue, bright = true)
+              else:
+                  tb.setForegroundColor(fgMagenta, true)
             of '>':
                 tb.setForegroundColor(fgGreen, bright = true)
             else:
                 tb.setForegroundColor(fgBlack, bright = true)
-            tb.write(tX, tY, $tile)
+                if (wX,wY,level) in goreSeq:
+                  rtile = "•"
+                  tb.setForegroundColor(fgRed)
+            if rtile != "": tb.write(tX, tY, $rtile)
+            else: tb.write(tX, tY, $tile)
+            tb.write(0, 28, "TIme: " & $time)
+            tb.write(0, 29, "Turn: " & $turns)
             tb.resetAttributes()
     clearMenu()
     case menu
@@ -127,6 +164,11 @@ proc drawToTerminal() =
             tb.write(13, 5, "-SPELLS-")
             for i in 0..<4:
                 tb.write(11, 7+i, "•" & player.spells[i])
+        of 3:
+            tb.write(14, 5, "-DIG-")
+            tb.write(11, 6, "Walk into #s")
+            tb.write(11, 7, "to dig them.")
+
         else:
             discard
     tb.display()
@@ -136,12 +178,12 @@ proc drawToTerminal() =
 proc changeLevel(restart: bool = false) =
   # Changes the level. Restarts the level if used as
   # changeLevel(true) or changeLevel(restart = true)
-    if restart:
+    if restart or level == worldArr.len-1:
         currentWorld = worldOriginal
         level = 0
     else:
-        currentWorld = generateWorld()
         inc level
+        currentWorld = worldArr[level]
     placeEntities()
 
 proc getInput() = 
@@ -156,16 +198,28 @@ proc getInput() =
             player.pos.x -= 1
         of Key.Right:
             player.pos.x += 1
+        of Key.Plus:
+          if level < worldArr.len-1:
+            level += 1
+            currentWorld = worldArr[level]
+        of Key.Minus:
+          if level > 0:
+            level -= 1
+            currentWorld = worldArr[level]
         of Key.Backspace:
             menu = 0
         of Key.R:
             changeLevel(restart = true)
+            lastAction = "You return home.    "
         of Key.I:
             if menu == 0:
                 menu = 1
         of Key.S:
             if menu == 0:
                 menu = 2
+        of Key.D:
+            if menu == 2:
+                menu = 3
         of Key.Q:
             running = false
         else:
@@ -174,7 +228,7 @@ proc getInput() =
     player.pos.y = clamp(player.pos.y, 0, MapSize - 1)
 
 proc reset() =
-    world = currentWorld
+    world = worldArr[level]
 
 proc pathing(e: Entity) =
     if distance(e) < 5 and player.hp > 0:
@@ -210,8 +264,11 @@ proc combat(e, p: Entity, index: int) =
 proc dealCollision(e: Entity, index: int) =
     if (index == 0 and player.hp > 0) or index != 0:
         if world[e.pos.y][e.pos.x] == '#':
+                if menu == 3 and e == player:
+                  worldArr[level][e.pos.y][e.pos.x] = '.'
                 e.pos = e.ppos
         elif world[e.pos.y][e.pos.x] == '>' and e == player:
+            lastAction = "You descend further... "
             changeLevel()
         else:
             for i in 0..<entitySeq.len():
@@ -224,6 +281,8 @@ proc dealCollision(e: Entity, index: int) =
                                 e.la = time
                                 if entitySeq[i].hp <= 0 and i != 0:
                                     deadEntities.add(i)
+                                    if not(((entitySeq[i].ppos.x,entitySeq[i].ppos.y, level)) in goreSeq):
+                                      goreSeq.add (entitySeq[i].ppos.x,entitySeq[i].ppos.y, level)
     let 
         x = player.pos.x - player.ppos.x
         y = player.pos.y - player.ppos.y
@@ -263,16 +322,18 @@ proc exitProc() {.noconv.} =
     quit(0)
 
 proc main() =
-    drawInitialTerminal()
     illwillInit(fullscreen=true)
-    setControlCHook(exitProc)
     hideCursor()
+    displayTitleScreen()
+    drawInitialTerminal()
+    setControlCHook(exitProc)
 
     while running:
             reset()
             getInput()
             update()
             drawToTerminal()
+            inc turns
 
     exitProc()
 
