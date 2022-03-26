@@ -1,4 +1,6 @@
 # NimHack
+![coverart.png](coverart.png)
+
 A fun project with the objective of copying Nethack in Nim
 
 I'll be using this project as a way to learn more about game programming and to have some fun as well. I've always enjoyed Nethack type of games, which is why I chose to start this project.
